@@ -121,10 +121,10 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
       {/* Background scene */}
       <div className="bg-scene" />
       {/* Ambient glow spots */}
-      <div className="glow-spot w-[700px] h-[500px] -top-48 -left-32 opacity-[0.07]"
-        style={{ background: "radial-gradient(circle, #22d3ee, transparent 70%)" }} />
-      <div className="glow-spot w-[500px] h-[500px] top-1/2 -right-64 opacity-[0.05]"
-        style={{ background: "radial-gradient(circle, #818cf8, transparent 70%)" }} />
+      <div className="glow-spot w-[700px] h-[500px] -top-48 -left-32"
+        style={{ background: "radial-gradient(circle, var(--scene-glow-a), transparent 70%)", opacity: 1 }} />
+      <div className="glow-spot w-[500px] h-[500px] top-1/2 -right-64"
+        style={{ background: "radial-gradient(circle, var(--scene-glow-b), transparent 70%)", opacity: 1 }} />
 
       {/* ── Nav ── */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
@@ -132,12 +132,11 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
           <div className="w-7 h-7 rounded-lg grid place-items-center"
             style={{ background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.25)" }}>
             <InboxIcon className="w-3.5 h-3.5 text-cyan" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--color-foreground)" }}>
+          </div>          <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--color-foreground)" }}>
             vanish<span className="text-cyan">.mail</span>
           </span>
           <span className="ml-2 text-xs mono px-2 py-0.5 rounded"
-            style={{ color: "var(--dim)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+            style={{ color: "var(--dim)", background: "var(--glass-xs-bg)", border: "1px solid var(--glass-border)" }}>
             v2
           </span>
         </div>
@@ -170,7 +169,7 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
           {/* Giant typewriter headline */}
           <h1 className="font-bold leading-[0.95] tracking-[-0.04em] mb-8"
             style={{ fontSize: "clamp(3.5rem, 10vw, 8rem)", color: "var(--color-foreground)" }}>
-            <span className="block" style={{ color: "rgba(226,232,240,0.35)", fontSize: "0.55em", letterSpacing: "-0.02em", marginBottom: "0.1em" }}>
+            <span className="block" style={{ color: "var(--muted-foreground)", fontSize: "0.55em", letterSpacing: "-0.02em", marginBottom: "0.1em" }}>
               your
             </span>
             <span className="block grad-cyan">
@@ -230,10 +229,10 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
 
         {/* ── Right column — terminal preview card ── */}
         <div className="absolute right-8 top-24 w-80 hidden xl:block float-y">
-          <div className="glass rounded-xl overflow-hidden" style={{ border: "1px solid rgba(34,211,238,0.12)" }}>
+          <div className="glass rounded-xl overflow-hidden" style={{ border: "1px solid var(--terminal-border)" }}>
             {/* Terminal title bar */}
             <div className="flex items-center gap-2 px-4 py-3"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+              style={{ borderBottom: "1px solid var(--glass-border)", background: "var(--terminal-bg)" }}>
               <div className="flex gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#f87171" }} />
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#fbbf24" }} />
@@ -249,7 +248,7 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
               <div className="mono text-xs" style={{ color: "var(--green)" }}>
                 ✓ address allocated
               </div>
-              <div className="mono text-xs truncate" style={{ color: "rgba(226,232,240,0.6)" }}>
+              <div className="mono text-xs truncate" style={{ color: "var(--muted-foreground)" }}>
                 → xk9m2p@mail.tm
               </div>
               <div className="rule my-3" />
@@ -262,11 +261,11 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
               <div className="rule my-3" />
               {/* OTP preview */}
               <div className="rounded-lg p-3 otp-block">
-                <div className="mono text-xs mb-2" style={{ color: "rgba(74,222,128,0.6)" }}>
+                <div className="mono text-xs mb-2" style={{ color: "var(--green)", opacity: 0.7 }}>
                   OTP DETECTED
                 </div>
                 <div className="otp-code text-2xl">482 917</div>
-                <div className="mono text-xs mt-2" style={{ color: "rgba(74,222,128,0.5)" }}>
+                <div className="mono text-xs mt-2" style={{ color: "var(--green)", opacity: 0.6 }}>
                   expires 10:00
                 </div>
               </div>
@@ -323,16 +322,15 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
 
       {/* ── Top bar ── */}
       <header className="relative z-10 flex items-center justify-between px-6 py-3"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(8,11,16,0.8)", backdropFilter: "blur(16px)" }}>
+        style={{ borderBottom: "1px solid var(--glass-border)", background: "var(--header-bg)", backdropFilter: "blur(16px)" }}>
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 rounded-md grid place-items-center"
-            style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}>
-            <InboxIcon className="w-3 h-3 text-cyan" />
+            style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}>            <InboxIcon className="w-3 h-3 text-cyan" />
           </div>
           <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--color-foreground)" }}>
             vanish<span className="text-cyan">.mail</span>
           </span>
-          <div className="rule w-px h-4 mx-1" style={{ background: "rgba(255,255,255,0.08)", width: 1 }} />
+          <div className="rule w-px h-4 mx-1" style={{ width: 1 }} />
           <div className="flex items-center gap-1.5">
             <div className="live-dot" />
             <span className="mono text-xs" style={{ color: "var(--dim)" }}>live</span>
@@ -357,9 +355,9 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
 
       {/* ── Main grid ── */}
       <div className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-[220px_1fr] xl:grid-cols-[220px_340px_1fr]"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+        style={{ borderTop: "1px solid var(--glass-border)" }}>
         <Sidebar inboxes={inboxes} activeId={active?.id ?? null} />
-        {active ? <InboxPane key={active.id} account={active} /> : null}
+        {active ? <InboxPane key={active.id} account={active} theme={theme} /> : null}
       </div>
     </div>
   );
@@ -369,7 +367,7 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
 function Sidebar({ inboxes, activeId }: { inboxes: MailAccount[]; activeId: string | null }) {
   return (
     <aside className="relative z-10 p-3 overflow-y-auto scrollbar-thin"
-      style={{ borderRight: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.015)" }}>
+      style={{ borderRight: "1px solid var(--sidebar-border)", background: "var(--sidebar-bg)" }}>
       <div className="px-2 py-2 mono text-xs tracking-widest uppercase" style={{ color: "var(--dim)" }}>
         sessions · {inboxes.length}
       </div>
@@ -391,7 +389,7 @@ function Sidebar({ inboxes, activeId }: { inboxes: MailAccount[]; activeId: stri
 }
 
 /* ── Inbox Pane ── */
-function InboxPane({ account }: { account: MailAccount }) {
+function InboxPane({ account, theme }: { account: MailAccount; theme: string }) {
   const [messages, setMessages] = useState<MailMessageSummary[]>([]);
   const [selected, setSelected] = useState<MailMessageFull | null>(null);
   const [loading, setLoading] = useState(true);
@@ -443,16 +441,16 @@ function InboxPane({ account }: { account: MailAccount }) {
     <>
       {/* Message list */}
       <section className="relative z-10 flex flex-col min-h-0 xl:max-h-[calc(100vh-49px)] scrollbar-thin"
-        style={{ borderRight: "1px solid rgba(255,255,255,0.05)" }}>
+        style={{ borderRight: "1px solid var(--sidebar-border)" }}>
 
         {/* Address header */}
-        <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--glass-border)" }}>
           <div className="mono text-xs mb-2.5 tracking-widest uppercase" style={{ color: "var(--dim)" }}>
             active address
           </div>
           <div className="flex items-center gap-2">
             <code className="flex-1 px-3 py-2 rounded-lg text-xs mono truncate"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "var(--color-foreground)" }}>
+              style={{ background: "var(--addr-bg)", border: "1px solid var(--addr-border)", color: "var(--color-foreground)" }}>
               {account.address}
             </code>
             <button onClick={copyAddr}
@@ -491,13 +489,17 @@ function InboxPane({ account }: { account: MailAccount }) {
                   <li key={m.id}>
                     <button
                       onClick={() => open(m.id)}
-                      className={`msg-row w-full text-left px-5 py-4 transition-all ${isSel ? "msg-active" : "hover:bg-white/[0.02]"}`}
+                      className={`msg-row w-full text-left px-5 py-4 transition-all ${isSel ? "msg-active" : ""}`}
                       style={{
-                        borderBottom: "1px solid rgba(255,255,255,0.04)",
+                        borderBottom: "1px solid var(--glass-border)",
                         animationDelay: `${idx * 0.04}s`,
                         opacity: m.seen && !isSel ? 0.5 : 1,
                         borderLeft: isSel ? undefined : "2px solid transparent",
-                      }}>
+                        background: !isSel ? undefined : undefined,
+                      }}
+                      onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "var(--row-hover)"; }}
+                      onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = ""; }}
+                    >
                       <div className="flex items-center gap-2 mb-1">
                         {!m.seen && <div className="live-dot" style={{ width: 5, height: 5 }} />}
                         <span className="text-xs font-semibold truncate" style={{ color: "var(--color-foreground)" }}>
@@ -507,7 +509,7 @@ function InboxPane({ account }: { account: MailAccount }) {
                           {formatDistanceToNow(new Date(m.createdAt), { addSuffix: false })}
                         </span>
                       </div>
-                      <div className="text-xs truncate mb-0.5" style={{ color: "rgba(226,232,240,0.7)" }}>
+                      <div className="text-xs truncate mb-0.5" style={{ color: "var(--color-foreground)", opacity: 0.8 }}>
                         {m.subject || "(no subject)"}
                       </div>
                       <div className="text-xs truncate" style={{ color: "var(--dim)" }}>
@@ -530,7 +532,7 @@ function InboxPane({ account }: { account: MailAccount }) {
       {/* Reader — desktop */}
       <section className="relative z-10 hidden xl:flex flex-col min-h-0 max-h-[calc(100vh-49px)]">
         {selected
-          ? <MessageView key={selected.id} message={selected} onDelete={() => delMsg(selected.id)} />
+          ? <MessageView key={selected.id} message={selected} onDelete={() => delMsg(selected.id)} theme={theme} />
           : <EmptyReader />}
       </section>
 
@@ -538,7 +540,7 @@ function InboxPane({ account }: { account: MailAccount }) {
       {selected && (
         <div className="xl:hidden fixed inset-0 z-50 overflow-y-auto drawer-enter"
           style={{ background: "var(--color-background)" }}>
-          <MessageView key={selected.id} message={selected} onDelete={() => delMsg(selected.id)} onClose={() => setSelected(null)} />
+          <MessageView key={selected.id} message={selected} onDelete={() => delMsg(selected.id)} onClose={() => setSelected(null)} theme={theme} />
         </div>
       )}
     </>
@@ -546,17 +548,22 @@ function InboxPane({ account }: { account: MailAccount }) {
 }
 
 /* ── Message View ── */
-function MessageView({ message, onDelete, onClose }: {
-  message: MailMessageFull; onDelete: () => void; onClose?: () => void;
+function MessageView({ message, onDelete, onClose, theme }: {
+  message: MailMessageFull; onDelete: () => void; onClose?: () => void; theme: string;
 }) {
   const otp = extractOTP(`${message.subject} ${message.text || ""}`);
+  const isDark = theme === "dark";
+
+  const iframeStyles = isDark
+    ? `body{color:#e2e8f0;font-family:ui-sans-serif,system-ui,sans-serif;background:#0d1117;margin:0;padding:16px;line-height:1.65;font-size:14px}a{color:#22d3ee}img{max-width:100%}p,div,span,td,th{color:#e2e8f0!important;background:transparent!important}table{background:transparent!important}*{border-color:rgba(255,255,255,0.08)!important}`
+    : `body{color:#0f172a;font-family:ui-sans-serif,system-ui,sans-serif;background:#f8fafc;margin:0;padding:16px;line-height:1.65;font-size:14px}a{color:#0891b2}img{max-width:100%}`;
   return (
     <div className="flex flex-col h-full detail-enter relative">
       {/* Ambient glow when OTP present */}
       {otp && <div className="ambient-glow" />}
 
       {/* Header */}
-      <div className="relative px-6 py-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="relative px-6 py-5" style={{ borderBottom: "1px solid var(--glass-border)" }}>
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold leading-snug tracking-tight mb-1"
@@ -588,7 +595,7 @@ function MessageView({ message, onDelete, onClose }: {
         {otp && (
           <div className="mt-5 rounded-xl p-5 otp-block relative overflow-hidden">
             <div className="mono text-xs tracking-widest uppercase mb-3"
-              style={{ color: "rgba(74,222,128,0.6)" }}>
+              style={{ color: "var(--green)", opacity: 0.7 }}>
               verification code detected
             </div>
             <div className="flex items-center justify-between gap-4">
@@ -596,7 +603,7 @@ function MessageView({ message, onDelete, onClose }: {
               <button
                 onClick={() => { navigator.clipboard.writeText(otp); toast.success("code copied"); }}
                 className="btn-primary px-5 py-2.5 rounded-lg text-xs shrink-0"
-                style={{ background: "var(--green)", color: "#080b10", boxShadow: "0 0 20px -4px rgba(74,222,128,0.4)" }}>
+                style={{ background: "var(--green)", color: "var(--accent-foreground)", boxShadow: "0 0 20px -4px color-mix(in srgb, var(--green) 40%, transparent)" }}>
                 copy
               </button>
             </div>
@@ -612,13 +619,13 @@ function MessageView({ message, onDelete, onClose }: {
         {message.html?.length ? (
           <iframe
             title="message" sandbox=""
-            srcDoc={`<style>body{color:#e2e8f0;font-family:ui-sans-serif,system-ui;background:transparent;margin:0;padding:0;line-height:1.65;font-size:14px}a{color:#22d3ee}img{max-width:100%}</style>${message.html.join("")}`}
-            className="w-full min-h-[400px] border-0 bg-transparent"
-            style={{ colorScheme: "dark" }}
+            srcDoc={`<style>${iframeStyles}</style>${message.html.join("")}`}
+            className="w-full min-h-[400px] border-0"
+            style={{ colorScheme: isDark ? "dark" : "light", background: isDark ? "#0d1117" : "#f8fafc" }}
           />
         ) : (
           <pre className="whitespace-pre-wrap text-sm leading-relaxed"
-            style={{ color: "rgba(226,232,240,0.75)", fontFamily: "var(--font-sans)" }}>
+            style={{ color: "var(--color-foreground)", fontFamily: "var(--font-sans)" }}>
             {message.text}
           </pre>
         )}
@@ -652,10 +659,10 @@ function EmptyInbox() {
 function EmptyReader() {
   return (
     <div className="flex-1 flex flex-col items-start justify-end px-6 pb-10">
-      <div className="mono text-xs tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.1)" }}>
+      <div className="mono text-xs tracking-widest uppercase mb-2" style={{ color: "var(--dim)", opacity: 0.4 }}>
         no message selected
       </div>
-      <div className="mono text-xs" style={{ color: "rgba(255,255,255,0.08)" }}>
+      <div className="mono text-xs" style={{ color: "var(--dim)", opacity: 0.3 }}>
         select a message from the list →
       </div>
     </div>
