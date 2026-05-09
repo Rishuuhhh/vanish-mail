@@ -86,7 +86,7 @@ export function App() {
     setView("inbox");
   }
 
-  if (view === "home" || (mode === "mailtm" && !inboxes.length) || (mode === "simplelogin" && !slApiKey && !slAliases.length)) {
+  if (view === "home" || (mode === "mailtm" && !inboxes.length)) {
     return (
       <PageTransition id="home" dir="up">
         <Landing
@@ -96,6 +96,42 @@ export function App() {
           onGoToInbox={() => setView("inbox")}
           mode={mode} onSwitchMode={switchMode}
         />
+      </PageTransition>
+    );
+  }
+
+  // SimpleLogin selected but no API key yet — show setup screen directly
+  if (mode === "simplelogin" && !slApiKey) {
+    return (
+      <PageTransition id="sl-setup" dir="right">
+        <div className="min-h-screen flex flex-col" style={{ background: "var(--color-background)" }}>
+          <div className="bg-scene" />
+          <header className="relative z-10 flex items-center justify-between px-6 py-3"
+            style={{ borderBottom: "1px solid var(--glass-border)", background: "var(--header-bg)", backdropFilter: "blur(16px)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-md grid place-items-center"
+                style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}>
+                <InboxIcon className="w-3 h-3 text-cyan" />
+              </div>
+              <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--color-foreground)" }}>
+                vanish<span className="text-cyan">.mail</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { switchMode("mailtm"); setView("home"); }}
+                className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
+                <Home className="w-3.5 h-3.5" /> back
+              </button>
+              <button onClick={toggleTheme} aria-label="toggle theme"
+                className="btn-ghost w-7 h-7 rounded-lg grid place-items-center">
+                {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </header>
+          <div className="relative z-10 flex-1 flex items-start justify-start">
+            <SLSetup onDone={() => setView("inbox")} />
+          </div>
+        </div>
       </PageTransition>
     );
   }
@@ -443,13 +479,7 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
         style={{ borderTop: "1px solid var(--glass-border)" }}>
 
         {mode === "simplelogin" ? (
-          slApiKey ? (
-            <SLPanel />
-          ) : (
-            <div className="col-span-3">
-              <SLSetup onDone={() => {}} />
-            </div>
-          )
+          <SLPanel />
         ) : (
           <>
             <Sidebar inboxes={inboxes} activeId={active?.id ?? null} />
