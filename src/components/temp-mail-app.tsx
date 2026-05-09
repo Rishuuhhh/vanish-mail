@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import {
   Inbox as InboxIcon, Plus, Sun, Moon, Trash2, Copy, Check,
-  RefreshCw, Sparkles, ShieldCheck, Zap, Home, ArrowRight,
-  Mail, Terminal, Lock, Activity,
+  RefreshCw, ShieldCheck, Zap, Home, ArrowRight,
+  Terminal, Lock, Activity, Key,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -13,8 +12,10 @@ import {
 } from "@/lib/mailtm";
 import {
   addInbox, removeInbox, setActiveId,
-  useInboxes, getTheme, setTheme,
+  useStore, getTheme, setTheme, getMode, setMode, getSLApiKey,
+  type Mode,
 } from "@/lib/inbox-store";
+import { SLSetup, SLPanel } from "@/components/simplelogin-panel";
 import { formatDistanceToNow } from "date-fns";
 
 /* ── Typewriter hook ── */
@@ -51,7 +52,7 @@ function PageTransition({ id, dir, children }: {
    ROOT
 ════════════════════════════════════════════ */
 export function App() {
-  const { inboxes, activeId } = useInboxes();
+  const { inboxes, slAliases, slApiKey, activeId, mode } = useStore();
   const active = inboxes.find((i) => i.id === activeId) || inboxes[0];
   const [creating, setCreating] = useState(false);
   const [theme, setT] = useState<"dark" | "light">("dark");
@@ -59,8 +60,9 @@ export function App() {
 
   useEffect(() => { const t = getTheme(); setT(t); setTheme(t); }, []);
   useEffect(() => {
-    if (inboxes.length > 0 && view === "home") setView("inbox");
-  }, [inboxes.length]); // eslint-disable-line
+    if (mode === "mailtm" && inboxes.length > 0 && view === "home") setView("inbox");
+    if (mode === "simplelogin" && (slApiKey || slAliases.length > 0) && view === "home") setView("inbox");
+  }, [inboxes.length, slAliases.length, slApiKey]); // eslint-disable-line
 
   async function newInbox() {
     setCreating(true);
@@ -79,26 +81,34 @@ export function App() {
     setT(next); setTheme(next);
   }
 
-  if (view === "home" || !inboxes.length) {
+  function switchMode(m: Mode) {
+    setMode(m);
+    setView("inbox");
+  }
+
+  if (view === "home" || (mode === "mailtm" && !inboxes.length) || (mode === "simplelogin" && !slApiKey && !slAliases.length)) {
     return (
       <PageTransition id="home" dir="up">
         <Landing
           onCreate={newInbox} creating={creating}
           theme={theme} onToggleTheme={toggleTheme}
-          hasInboxes={inboxes.length > 0}
+          hasInboxes={inboxes.length > 0 || slAliases.length > 0 || !!slApiKey}
           onGoToInbox={() => setView("inbox")}
+          mode={mode} onSwitchMode={switchMode}
         />
       </PageTransition>
     );
   }
 
   return (
-    <PageTransition id="inbox" dir="right">
+    <PageTransition id={`inbox-${mode}`} dir="right">
       <InboxView
         inboxes={inboxes} active={active}
         onNew={newInbox} creating={creating}
         theme={theme} onToggleTheme={toggleTheme}
         onGoHome={() => setView("home")}
+        mode={mode} onSwitchMode={switchMode}
+        slApiKey={slApiKey}
       />
     </PageTransition>
   );
@@ -107,9 +117,10 @@ export function App() {
 /* ════════════════════════════════════════════
    LANDING — cinematic, asymmetric, typographic
 ════════════════════════════════════════════ */
-function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToInbox }: {
+function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToInbox, mode, onSwitchMode }: {
   onCreate: () => void; creating: boolean; theme: string;
   onToggleTheme: () => void; hasInboxes: boolean; onGoToInbox: () => void;
+  mode: Mode; onSwitchMode: (m: Mode) => void;
 }) {
   const line1 = useTypewriter("disposable", 52, 400);
   const line2 = useTypewriter("inbox.", 52, 400 + "disposable".length * 52 + 180);
@@ -207,6 +218,59 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
                 resume session <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
+          </div>
+
+          {/* Mode switcher */}
+          <div className="mt-12">
+            <div className="mono text-xs tracking-widest uppercase mb-4" style={{ color: "var(--dim)" }}>
+              choose your mode
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3 max-w-xl">
+              {/* mail.tm mode */}
+              <button onClick={() => { onSwitchMode("mailtm"); onCreate(); }}
+                disabled={creating}
+                className="text-left p-4 rounded-xl transition-all"
+                style={{
+                  background: mode === "mailtm" ? "rgba(34,211,238,0.08)" : "var(--glass-xs-bg)",
+                  border: `1px solid ${mode === "mailtm" ? "rgba(34,211,238,0.3)" : "var(--glass-border)"}`,
+                }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Terminal className="w-4 h-4" style={{ color: "var(--cyan)" }} />
+                  <span className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
+                    Disposable
+                  </span>
+                  {mode === "mailtm" && (
+                    <span className="ml-auto mono text-xs px-1.5 py-0.5 rounded"
+                      style={{ background: "rgba(34,211,238,0.15)", color: "var(--cyan)" }}>active</span>
+                  )}
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--dim)" }}>
+                  Instant inbox via mail.tm. Read emails in-app. Blocked by Twitter/Google.
+                </p>
+              </button>
+
+              {/* SimpleLogin mode */}
+              <button onClick={() => onSwitchMode("simplelogin")}
+                className="text-left p-4 rounded-xl transition-all"
+                style={{
+                  background: mode === "simplelogin" ? "rgba(74,222,128,0.08)" : "var(--glass-xs-bg)",
+                  border: `1px solid ${mode === "simplelogin" ? "rgba(74,222,128,0.3)" : "var(--glass-border)"}`,
+                }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Key className="w-4 h-4" style={{ color: "var(--green)" }} />
+                  <span className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
+                    SimpleLogin
+                  </span>
+                  <span className="ml-auto mono text-xs px-1.5 py-0.5 rounded"
+                    style={{ background: "rgba(74,222,128,0.12)", color: "var(--green)" }}>
+                    works everywhere
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--dim)" }}>
+                  Real aliases that work on Twitter, Google & more. Forwards to your inbox.
+                </p>
+              </button>
+            </div>
           </div>
 
           {/* Attribute strip */}
@@ -311,10 +375,11 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
 /* ════════════════════════════════════════════
    INBOX VIEW
 ════════════════════════════════════════════ */
-function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onGoHome }: {
+function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onGoHome, mode, onSwitchMode, slApiKey }: {
   inboxes: MailAccount[]; active: MailAccount | undefined;
   onNew: () => void; creating: boolean; theme: string;
   onToggleTheme: () => void; onGoHome: () => void;
+  mode: Mode; onSwitchMode: (m: Mode) => void; slApiKey: string;
 }) {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--color-background)" }}>
@@ -325,27 +390,47 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
         style={{ borderBottom: "1px solid var(--glass-border)", background: "var(--header-bg)", backdropFilter: "blur(16px)" }}>
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 rounded-md grid place-items-center"
-            style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}>            <InboxIcon className="w-3 h-3 text-cyan" />
+            style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}>
+            <InboxIcon className="w-3 h-3 text-cyan" />
           </div>
           <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--color-foreground)" }}>
             vanish<span className="text-cyan">.mail</span>
           </span>
           <div className="rule w-px h-4 mx-1" style={{ width: 1 }} />
+          {/* Mode badge */}
           <div className="flex items-center gap-1.5">
-            <div className="live-dot" />
-            <span className="mono text-xs" style={{ color: "var(--dim)" }}>live</span>
+            {mode === "mailtm" ? (
+              <>
+                <div className="live-dot" />
+                <span className="mono text-xs" style={{ color: "var(--dim)" }}>disposable</span>
+              </>
+            ) : (
+              <>
+                <Key className="w-3 h-3" style={{ color: "var(--green)" }} />
+                <span className="mono text-xs" style={{ color: "var(--green)" }}>simplelogin</span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Mode switcher */}
+          <button
+            onClick={() => onSwitchMode(mode === "mailtm" ? "simplelogin" : "mailtm")}
+            className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
+            {mode === "mailtm" ? <Key className="w-3.5 h-3.5" /> : <Terminal className="w-3.5 h-3.5" />}
+            {mode === "mailtm" ? "use simplelogin" : "use disposable"}
+          </button>
           <button onClick={onGoHome}
             className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
             <Home className="w-3.5 h-3.5" /> home
           </button>
-          <button onClick={onNew} disabled={creating}
-            className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
-            {creating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-            new
-          </button>
+          {mode === "mailtm" && (
+            <button onClick={onNew} disabled={creating}
+              className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
+              {creating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              new
+            </button>
+          )}
           <button onClick={onToggleTheme} aria-label="toggle theme"
             className="btn-ghost w-7 h-7 rounded-lg grid place-items-center">
             {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
@@ -356,8 +441,21 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
       {/* ── Main grid ── */}
       <div className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-[220px_1fr] xl:grid-cols-[220px_340px_1fr]"
         style={{ borderTop: "1px solid var(--glass-border)" }}>
-        <Sidebar inboxes={inboxes} activeId={active?.id ?? null} />
-        {active ? <InboxPane key={active.id} account={active} theme={theme} /> : null}
+
+        {mode === "simplelogin" ? (
+          slApiKey ? (
+            <SLPanel />
+          ) : (
+            <div className="col-span-3">
+              <SLSetup onDone={() => {}} />
+            </div>
+          )
+        ) : (
+          <>
+            <Sidebar inboxes={inboxes} activeId={active?.id ?? null} />
+            {active ? <InboxPane key={active.id} account={active} theme={theme} /> : null}
+          </>
+        )}
       </div>
     </div>
   );
