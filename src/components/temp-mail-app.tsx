@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Inbox as InboxIcon, Plus, Sun, Moon, Trash2, Copy, Check, RefreshCw, Sparkles, Mail, ShieldCheck, Zap } from "lucide-react";
+import { Inbox as InboxIcon, Plus, Sun, Moon, Trash2, Copy, Check, RefreshCw, Sparkles, Mail, ShieldCheck, Zap, Home } from "lucide-react";
 import { toast } from "sonner";
 import {
   createAccount,
@@ -29,6 +29,7 @@ export function App() {
   const active = inboxes.find((i) => i.id === activeId) || inboxes[0];
   const [creating, setCreating] = useState(false);
   const [theme, setT] = useState<"dark" | "light">("dark");
+  const [view, setView] = useState<"home" | "inbox">("home");
 
   useEffect(() => {
     const t = getTheme();
@@ -36,11 +37,17 @@ export function App() {
     setTheme(t);
   }, []);
 
+  // Auto-switch to inbox view when first inbox is created
+  useEffect(() => {
+    if (inboxes.length > 0 && view === "home") setView("inbox");
+  }, [inboxes.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function newInbox() {
     setCreating(true);
     try {
       const acc = await createAccount();
       addInbox(acc);
+      setView("inbox");
       toast.success("New inbox ready", { description: acc.address });
     } catch (e: any) {
       toast.error("Couldn't create inbox", { description: e.message });
@@ -55,11 +62,22 @@ export function App() {
     setTheme(next);
   }
 
-  if (!inboxes.length) return <Landing onCreate={newInbox} creating={creating} theme={theme} onToggleTheme={toggleTheme} />;
+  if (view === "home" || !inboxes.length) {
+    return (
+      <Landing
+        onCreate={newInbox}
+        creating={creating}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        hasInboxes={inboxes.length > 0}
+        onGoToInbox={() => setView("inbox")}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header onNew={newInbox} creating={creating} theme={theme} onToggleTheme={toggleTheme} />
+      <Header onNew={newInbox} creating={creating} theme={theme} onToggleTheme={toggleTheme} onGoHome={() => setView("home")} />
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_380px_1fr] border-t border-border">
         <Sidebar inboxes={inboxes} activeId={active?.id ?? null} />
         {active ? <InboxPane key={active.id} account={active} /> : null}
@@ -68,14 +86,21 @@ export function App() {
   );
 }
 
-function Landing({ onCreate, creating, theme, onToggleTheme }: { onCreate: () => void; creating: boolean; theme: string; onToggleTheme: () => void }) {
+function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToInbox }: {
+  onCreate: () => void;
+  creating: boolean;
+  theme: string;
+  onToggleTheme: () => void;
+  hasInboxes: boolean;
+  onGoToInbox: () => void;
+}) {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-30" />
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-3xl opacity-20" style={{ background: "radial-gradient(circle, var(--color-primary), transparent 60%)" }} />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full blur-3xl opacity-20" style={{ background: "radial-gradient(circle, var(--color-accent), transparent 60%)" }} />
 
-      <Header minimal theme={theme} onToggleTheme={onToggleTheme} />
+      <Header minimal theme={theme} onToggleTheme={onToggleTheme} hasInboxes={hasInboxes} onGoToInbox={onGoToInbox} />
 
       <main className="relative max-w-5xl mx-auto px-6 pt-20 pb-32">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-card/50 backdrop-blur text-xs font-mono text-muted-foreground mb-8">
@@ -95,6 +120,12 @@ function Landing({ onCreate, creating, theme, onToggleTheme }: { onCreate: () =>
             {creating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             generate inbox
           </button>
+          {hasInboxes && (
+            <button onClick={onGoToInbox} className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-border font-mono hover:bg-card transition">
+              <InboxIcon className="w-4 h-4" />
+              open inbox
+            </button>
+          )}
           <a href="#how" className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-border font-mono hover:bg-card transition">
             how it works
           </a>
@@ -118,7 +149,16 @@ function Landing({ onCreate, creating, theme, onToggleTheme }: { onCreate: () =>
   );
 }
 
-function Header({ onNew, creating, minimal, theme, onToggleTheme }: { onNew?: () => void; creating?: boolean; minimal?: boolean; theme: string; onToggleTheme: () => void }) {
+function Header({ onNew, creating, minimal, theme, onToggleTheme, onGoHome, hasInboxes, onGoToInbox }: {
+  onNew?: () => void;
+  creating?: boolean;
+  minimal?: boolean;
+  theme: string;
+  onToggleTheme: () => void;
+  onGoHome?: () => void;
+  hasInboxes?: boolean;
+  onGoToInbox?: () => void;
+}) {
   return (
     <header className="relative z-10 px-6 py-4 flex items-center justify-between glass-soft rounded-b-2xl">
       <Link to="/" className="flex items-center gap-2 font-mono font-bold tracking-tight">
@@ -128,6 +168,18 @@ function Header({ onNew, creating, minimal, theme, onToggleTheme }: { onNew?: ()
         <span>vanish<span className="text-primary">.mail</span></span>
       </Link>
       <div className="flex items-center gap-2">
+        {!minimal && onGoHome && (
+          <button onClick={onGoHome} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-border font-mono hover:bg-card/80 transition glass-soft" aria-label="home">
+            <Home className="w-4 h-4" />
+            home
+          </button>
+        )}
+        {minimal && hasInboxes && onGoToInbox && (
+          <button onClick={onGoToInbox} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-border font-mono hover:bg-card/80 transition glass-soft">
+            <InboxIcon className="w-4 h-4" />
+            my inboxes
+          </button>
+        )}
         {!minimal && onNew && (
           <button onClick={onNew} disabled={creating} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground font-mono hover:opacity-90 disabled:opacity-50">
             {creating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
