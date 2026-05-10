@@ -1,23 +1,21 @@
 import { useEffect, useState } from "react";
-import type { MailAccount } from "./mailtm";
 import type { SLAlias } from "./simplelogin";
 
-// ── Keys ──────────────────────────────────────────────────────────────────────
-const KEY_TM      = "tempmail.inboxes.v1";
-const KEY_SL      = "tempmail.sl.aliases.v1";
-const KEY_SL_KEY  = "tempmail.sl.apikey.v1";
-const KEY_ACTIVE  = "tempmail.active.v1";
-const KEY_MODE    = "tempmail.mode.v1";   // "mailtm" | "simplelogin"
-const KEY_THEME   = "tempmail.theme.v1";
+// ── Storage keys ──────────────────────────────────────────────────────────────
+const KEY_INBOXES  = "tempmail.inboxes.v2";   // string[] — maildrop mailbox names
+const KEY_SL       = "tempmail.sl.aliases.v1";
+const KEY_SL_KEY   = "tempmail.sl.apikey.v1";
+const KEY_ACTIVE   = "tempmail.active.v1";
+const KEY_MODE     = "tempmail.mode.v1";
+const KEY_THEME    = "tempmail.theme.v1";
 
-export type Mode = "mailtm" | "simplelogin";
+export type Mode = "maildrop" | "simplelogin";
 
 // ── Listener bus ──────────────────────────────────────────────────────────────
 type Listener = () => void;
 const listeners = new Set<Listener>();
 function emit() { listeners.forEach((l) => l()); }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function ls<T>(key: string, fallback: T): T {
   if (typeof localStorage === "undefined") return fallback;
   try { return JSON.parse(localStorage.getItem(key) || "null") ?? fallback; }
@@ -28,17 +26,17 @@ function lsSet(key: string, val: unknown) {
   emit();
 }
 
-// ── mail.tm inboxes ───────────────────────────────────────────────────────────
-export function getInboxes(): MailAccount[] { return ls<MailAccount[]>(KEY_TM, []); }
-export function addInbox(a: MailAccount) {
+// ── Maildrop inboxes (just mailbox names) ─────────────────────────────────────
+export function getInboxes(): string[] { return ls<string[]>(KEY_INBOXES, []); }
+export function addInbox(mailbox: string) {
   const all = getInboxes();
-  if (!all.find((x) => x.id === a.id)) lsSet(KEY_TM, [a, ...all]);
-  setActiveId(a.id);
+  if (!all.includes(mailbox)) lsSet(KEY_INBOXES, [mailbox, ...all]);
+  setActiveId(mailbox);
 }
-export function removeInbox(id: string) {
-  const next = getInboxes().filter((x) => x.id !== id);
-  lsSet(KEY_TM, next);
-  if (getActiveId() === id) setActiveId(next[0]?.id ?? null);
+export function removeInbox(mailbox: string) {
+  const next = getInboxes().filter((x) => x !== mailbox);
+  lsSet(KEY_INBOXES, next);
+  if (getActiveId() === mailbox) setActiveId(next[0] ?? null);
 }
 
 // ── SimpleLogin aliases ───────────────────────────────────────────────────────
@@ -78,8 +76,8 @@ export function setActiveId(id: string | null) {
 
 // ── Mode ──────────────────────────────────────────────────────────────────────
 export function getMode(): Mode {
-  if (typeof localStorage === "undefined") return "mailtm";
-  return (localStorage.getItem(KEY_MODE) as Mode) || "mailtm";
+  if (typeof localStorage === "undefined") return "maildrop";
+  return (localStorage.getItem(KEY_MODE) as Mode) || "maildrop";
 }
 export function setMode(m: Mode) {
   localStorage.setItem(KEY_MODE, m);
@@ -106,15 +104,15 @@ export function useStore() {
     return () => { listeners.delete(l); };
   }, []);
   return {
-    inboxes:    getInboxes(),
-    slAliases:  getSLAliases(),
-    slApiKey:   getSLApiKey(),
-    activeId:   getActiveId(),
-    mode:       getMode(),
+    inboxes:   getInboxes(),
+    slAliases: getSLAliases(),
+    slApiKey:  getSLApiKey(),
+    activeId:  getActiveId(),
+    mode:      getMode(),
   };
 }
 
-// Keep old hook name working for existing code
+// Legacy compat
 export function useInboxes() {
   const s = useStore();
   return { inboxes: s.inboxes, activeId: s.activeId };

@@ -6,13 +6,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  createAccount, listMessages, getMessage, deleteMessage,
-  deleteAccount, extractOTP,
-  type MailMessageSummary, type MailMessageFull, type MailAccount,
-} from "@/lib/mailtm";
-import {
+  listMessages as dropListMessages,
+  getMessage as dropGetMessage,
+  deleteMessage as dropDeleteMessage,
+  randomMailbox, toAddress, extractOTP,
+  type DropMessage,
+} from "@/lib/maildrop";import {
   addInbox, removeInbox, setActiveId,
-  useStore, getTheme, setTheme, getMode, setMode, getSLApiKey,
+  useStore, getTheme, setTheme, setMode, getSLApiKey,
   type Mode,
 } from "@/lib/inbox-store";
 import { SLSetup, SLPanel } from "@/components/simplelogin-panel";
@@ -53,24 +54,24 @@ function PageTransition({ id, dir, children }: {
 ════════════════════════════════════════════ */
 export function App() {
   const { inboxes, slAliases, slApiKey, activeId, mode } = useStore();
-  const active = inboxes.find((i) => i.id === activeId) || inboxes[0];
+  const active = inboxes.find((i) => i === activeId) || inboxes[0];
   const [creating, setCreating] = useState(false);
   const [theme, setT] = useState<"dark" | "light">("dark");
   const [view, setView] = useState<"home" | "inbox">("home");
 
   useEffect(() => { const t = getTheme(); setT(t); setTheme(t); }, []);
   useEffect(() => {
-    if (mode === "mailtm" && inboxes.length > 0 && view === "home") setView("inbox");
+    if (mode === "maildrop" && inboxes.length > 0 && view === "home") setView("inbox");
     if (mode === "simplelogin" && (slApiKey || slAliases.length > 0) && view === "home") setView("inbox");
   }, [inboxes.length, slAliases.length, slApiKey]); // eslint-disable-line
 
   async function newInbox() {
     setCreating(true);
     try {
-      const acc = await createAccount();
-      addInbox(acc);
+      const mailbox = randomMailbox();
+      addInbox(mailbox);
       setView("inbox");
-      toast.success("inbox spawned", { description: acc.address });
+      toast.success("inbox spawned", { description: toAddress(mailbox) });
     } catch (e: any) {
       toast.error("failed", { description: e.message });
     } finally { setCreating(false); }
@@ -86,7 +87,7 @@ export function App() {
     setView("inbox");
   }
 
-  if (view === "home" || (mode === "mailtm" && !inboxes.length)) {
+  if (view === "home" || (mode === "maildrop" && !inboxes.length)) {
     return (
       <PageTransition id="home" dir="up">
         <Landing
@@ -118,8 +119,7 @@ export function App() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => { switchMode("mailtm"); setView("home"); }}
-                className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
+              <button onClick={() => { switchMode("maildrop"); setView("home"); }} className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
                 <Home className="w-3.5 h-3.5" /> back
               </button>
               <button onClick={toggleTheme} aria-label="toggle theme"
@@ -149,10 +149,6 @@ export function App() {
     </PageTransition>
   );
 }
-
-/* ════════════════════════════════════════════
-   LANDING — cinematic, asymmetric, typographic
-════════════════════════════════════════════ */
 function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToInbox, mode, onSwitchMode }: {
   onCreate: () => void; creating: boolean; theme: string;
   onToggleTheme: () => void; hasInboxes: boolean; onGoToInbox: () => void;
@@ -209,7 +205,7 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
           <div className="flex items-center gap-2.5 mb-12">
             <div className="live-dot" />
             <span className="mono text-xs tracking-widest uppercase" style={{ color: "var(--dim)" }}>
-              system online · mail.tm
+              system online · maildrop.cc
             </span>
           </div>
 
@@ -262,26 +258,26 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
               choose your mode
             </div>
             <div className="grid sm:grid-cols-2 gap-3 max-w-xl">
-              {/* mail.tm mode */}
-              <button onClick={() => { onSwitchMode("mailtm"); onCreate(); }}
+              {/* Disposable mode */}
+              <button onClick={() => { onSwitchMode("maildrop"); onCreate(); }}
                 disabled={creating}
                 className="text-left p-4 rounded-xl transition-all"
                 style={{
-                  background: mode === "mailtm" ? "rgba(34,211,238,0.08)" : "var(--glass-xs-bg)",
-                  border: `1px solid ${mode === "mailtm" ? "rgba(34,211,238,0.3)" : "var(--glass-border)"}`,
+                  background: mode === "maildrop" ? "rgba(34,211,238,0.08)" : "var(--glass-xs-bg)",
+                  border: `1px solid ${mode === "maildrop" ? "rgba(34,211,238,0.3)" : "var(--glass-border)"}`,
                 }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Terminal className="w-4 h-4" style={{ color: "var(--cyan)" }} />
                   <span className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                     Disposable
                   </span>
-                  {mode === "mailtm" && (
+                  {mode === "maildrop" && (
                     <span className="ml-auto mono text-xs px-1.5 py-0.5 rounded"
                       style={{ background: "rgba(34,211,238,0.15)", color: "var(--cyan)" }}>active</span>
                   )}
                 </div>
                 <p className="text-xs leading-relaxed" style={{ color: "var(--dim)" }}>
-                  Instant inbox via mail.tm. Read emails in-app. Blocked by Twitter/Google.
+                  Instant inbox via maildrop.cc. Read emails in-app. No signup needed.
                 </p>
               </button>
 
@@ -412,7 +408,7 @@ function Landing({ onCreate, creating, theme, onToggleTheme, hasInboxes, onGoToI
    INBOX VIEW
 ════════════════════════════════════════════ */
 function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onGoHome, mode, onSwitchMode, slApiKey }: {
-  inboxes: MailAccount[]; active: MailAccount | undefined;
+  inboxes: string[]; active: string | undefined;
   onNew: () => void; creating: boolean; theme: string;
   onToggleTheme: () => void; onGoHome: () => void;
   mode: Mode; onSwitchMode: (m: Mode) => void; slApiKey: string;
@@ -435,7 +431,7 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
           <div className="rule w-px h-4 mx-1" style={{ width: 1 }} />
           {/* Mode badge */}
           <div className="flex items-center gap-1.5">
-            {mode === "mailtm" ? (
+            {mode === "maildrop" ? (
               <>
                 <div className="live-dot" />
                 <span className="mono text-xs" style={{ color: "var(--dim)" }}>disposable</span>
@@ -451,16 +447,16 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
         <div className="flex items-center gap-2">
           {/* Mode switcher */}
           <button
-            onClick={() => onSwitchMode(mode === "mailtm" ? "simplelogin" : "mailtm")}
+            onClick={() => onSwitchMode(mode === "maildrop" ? "simplelogin" : "maildrop")}
             className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
-            {mode === "mailtm" ? <Key className="w-3.5 h-3.5" /> : <Terminal className="w-3.5 h-3.5" />}
-            {mode === "mailtm" ? "use simplelogin" : "use disposable"}
+            {mode === "maildrop" ? <Key className="w-3.5 h-3.5" /> : <Terminal className="w-3.5 h-3.5" />}
+            {mode === "maildrop" ? "use simplelogin" : "use disposable"}
           </button>
           <button onClick={onGoHome}
             className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
             <Home className="w-3.5 h-3.5" /> home
           </button>
-          {mode === "mailtm" && (
+          {mode === "maildrop" && (
             <button onClick={onNew} disabled={creating}
               className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs">
               {creating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
@@ -482,8 +478,8 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
           <SLPanel />
         ) : (
           <>
-            <Sidebar inboxes={inboxes} activeId={active?.id ?? null} />
-            {active ? <InboxPane key={active.id} account={active} theme={theme} /> : null}
+            <Sidebar inboxes={inboxes} activeId={active ?? null} />
+            {active ? <InboxPane key={active} mailbox={active} theme={theme} /> : null}
           </>
         )}
       </div>
@@ -492,7 +488,7 @@ function InboxView({ inboxes, active, onNew, creating, theme, onToggleTheme, onG
 }
 
 /* ── Sidebar ── */
-function Sidebar({ inboxes, activeId }: { inboxes: MailAccount[]; activeId: string | null }) {
+function Sidebar({ inboxes, activeId }: { inboxes: string[]; activeId: string | null }) {
   return (
     <aside className="relative z-10 p-3 overflow-y-auto scrollbar-thin"
       style={{ borderRight: "1px solid var(--sidebar-border)", background: "var(--sidebar-bg)" }}>
@@ -500,14 +496,14 @@ function Sidebar({ inboxes, activeId }: { inboxes: MailAccount[]; activeId: stri
         sessions · {inboxes.length}
       </div>
       <ul className="space-y-0.5 mt-1">
-        {inboxes.map((i) => (
-          <li key={i.id}>
-            <button onClick={() => setActiveId(i.id)}
+        {inboxes.map((mailbox) => (
+          <li key={mailbox}>
+            <button onClick={() => setActiveId(mailbox)}
               className="w-full text-left px-3 py-2.5 rounded-lg text-xs mono truncate transition-all"
-              style={i.id === activeId
+              style={mailbox === activeId
                 ? { background: "rgba(34,211,238,0.08)", color: "var(--cyan)", borderLeft: "2px solid var(--cyan)", paddingLeft: "10px" }
                 : { color: "var(--dim)", borderLeft: "2px solid transparent", paddingLeft: "10px" }}>
-              {i.address}
+              {toAddress(mailbox)}
             </button>
           </li>
         ))}
@@ -517,49 +513,60 @@ function Sidebar({ inboxes, activeId }: { inboxes: MailAccount[]; activeId: stri
 }
 
 /* ── Inbox Pane ── */
-function InboxPane({ account, theme }: { account: MailAccount; theme: string }) {
-  const [messages, setMessages] = useState<MailMessageSummary[]>([]);
-  const [selected, setSelected] = useState<MailMessageFull | null>(null);
+function InboxPane({ mailbox, theme }: { mailbox: string; theme: string }) {
+  const address = toAddress(mailbox);
+  const [messages, setMessages] = useState<DropMessage[]>([]);
+  const [selected, setSelected] = useState<DropMessage | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  // track seen state client-side since Maildrop doesn't have a seen flag
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
 
   async function refresh(silent = false) {
     if (!silent) setLoading(true);
-    try { setMessages(await listMessages(account.token)); }
-    catch (e: any) { if (!silent) toast.error("fetch failed", { description: e.message }); }
-    finally { setLoading(false); }
+    try {
+      const list = await dropListMessages(mailbox);
+      setMessages(list.map((m) => ({ ...m, seen: seenIds.has(m.id) })));
+    } catch (e: any) {
+      if (!silent) toast.error("fetch failed", { description: e.message });
+    } finally { setLoading(false); }
   }
 
   useEffect(() => {
-    setSelected(null); refresh();
+    setSelected(null); setSeenIds(new Set()); refresh();
     const iv = setInterval(() => refresh(true), 5000);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account.id]);
+  }, [mailbox]);
+
+  // re-run refresh when seenIds changes so seen state updates
+  useEffect(() => {
+    setMessages((prev) => prev.map((m) => ({ ...m, seen: seenIds.has(m.id) })));
+  }, [seenIds]);
 
   async function open(id: string) {
     try {
-      const full = await getMessage(account.token, id);
+      const full = await dropGetMessage(mailbox, id);
       setSelected(full);
-      setMessages((m) => m.map((x) => (x.id === id ? { ...x, seen: true } : x)));
+      setSeenIds((s) => new Set([...s, id]));
     } catch (e: any) { toast.error("open failed", { description: e.message }); }
   }
 
   async function copyAddr() {
-    await navigator.clipboard.writeText(account.address);
+    await navigator.clipboard.writeText(address);
     setCopied(true); toast.success("copied");
     setTimeout(() => setCopied(false), 1500);
   }
 
   async function destroy() {
-    if (!confirm("Delete this inbox?")) return;
-    try { await deleteAccount(account.token, account.id); } catch {}
-    removeInbox(account.id); toast.success("inbox destroyed");
+    if (!confirm("Remove this inbox from your list?")) return;
+    removeInbox(mailbox);
+    toast.success("inbox removed");
   }
 
   async function delMsg(id: string) {
     try {
-      await deleteMessage(account.token, id);
+      await dropDeleteMessage(mailbox, id);
       setMessages((m) => m.filter((x) => x.id !== id));
       if (selected?.id === id) setSelected(null);
     } catch (e: any) { toast.error("delete failed", { description: e.message }); }
@@ -579,7 +586,7 @@ function InboxPane({ account, theme }: { account: MailAccount; theme: string }) 
           <div className="flex items-center gap-2">
             <code className="flex-1 px-3 py-2 rounded-lg text-xs mono truncate"
               style={{ background: "var(--addr-bg)", border: "1px solid var(--addr-border)", color: "var(--color-foreground)" }}>
-              {account.address}
+              {address}
             </code>
             <button onClick={copyAddr}
               className="w-8 h-8 rounded-lg grid place-items-center btn-ghost transition-all"
@@ -611,7 +618,7 @@ function InboxPane({ account, theme }: { account: MailAccount; theme: string }) 
            messages.length === 0 ? <EmptyInbox /> : (
             <ul>
               {messages.map((m, idx) => {
-                const otp = extractOTP(`${m.subject} ${m.intro}`);
+                const otp = extractOTP(`${m.subject} ${m.data?.slice(0, 200) ?? ""}`);
                 const isSel = selected?.id === m.id;
                 return (
                   <li key={m.id}>
@@ -631,17 +638,17 @@ function InboxPane({ account, theme }: { account: MailAccount; theme: string }) 
                       <div className="flex items-center gap-2 mb-1">
                         {!m.seen && <div className="live-dot" style={{ width: 5, height: 5 }} />}
                         <span className="text-xs font-semibold truncate" style={{ color: "var(--color-foreground)" }}>
-                          {m.from.name || m.from.address}
+                          {m.headerfrom || m.mailfrom}
                         </span>
                         <span className="ml-auto mono text-xs shrink-0" style={{ color: "var(--dim)" }}>
-                          {formatDistanceToNow(new Date(m.createdAt), { addSuffix: false })}
+                          {formatDistanceToNow(new Date(m.date), { addSuffix: false })}
                         </span>
                       </div>
                       <div className="text-xs truncate mb-0.5" style={{ color: "var(--color-foreground)", opacity: 0.8 }}>
                         {m.subject || "(no subject)"}
                       </div>
                       <div className="text-xs truncate" style={{ color: "var(--dim)" }}>
-                        {m.intro}
+                        {m.data?.slice(0, 80)}
                       </div>
                       {otp && (
                         <div className="mt-2">
@@ -677,9 +684,9 @@ function InboxPane({ account, theme }: { account: MailAccount; theme: string }) 
 
 /* ── Message View ── */
 function MessageView({ message, onDelete, onClose, theme }: {
-  message: MailMessageFull; onDelete: () => void; onClose?: () => void; theme: string;
+  message: DropMessage; onDelete: () => void; onClose?: () => void; theme: string;
 }) {
-  const otp = extractOTP(`${message.subject} ${message.text || ""}`);
+  const otp = extractOTP(`${message.subject} ${message.data || ""}`);
   const isDark = theme === "dark";
 
   const iframeStyles = isDark
@@ -687,10 +694,8 @@ function MessageView({ message, onDelete, onClose, theme }: {
     : `body{color:#0f172a;font-family:ui-sans-serif,system-ui,sans-serif;background:#f8fafc;margin:0;padding:16px;line-height:1.65;font-size:14px}a{color:#0891b2}img{max-width:100%}`;
   return (
     <div className="flex flex-col h-full detail-enter relative">
-      {/* Ambient glow when OTP present */}
       {otp && <div className="ambient-glow" />}
 
-      {/* Header */}
       <div className="relative px-6 py-5" style={{ borderBottom: "1px solid var(--glass-border)" }}>
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
@@ -699,17 +704,14 @@ function MessageView({ message, onDelete, onClose, theme }: {
               {message.subject || "(no subject)"}
             </h2>
             <div className="mono text-xs" style={{ color: "var(--dim)" }}>
-              {message.from.name || message.from.address}
+              {message.headerfrom || message.mailfrom}
               <span className="mx-2 opacity-40">·</span>
-              {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+              {formatDistanceToNow(new Date(message.date), { addSuffix: true })}
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {onClose && (
-              <button onClick={onClose}
-                className="btn-ghost px-3 py-1.5 rounded-lg text-xs">
-                esc
-              </button>
+              <button onClick={onClose} className="btn-ghost px-3 py-1.5 rounded-lg text-xs">esc</button>
             )}
             <button onClick={onDelete}
               className="btn-ghost w-7 h-7 rounded-lg grid place-items-center"
@@ -719,7 +721,6 @@ function MessageView({ message, onDelete, onClose, theme }: {
           </div>
         </div>
 
-        {/* OTP block — the hero moment */}
         {otp && (
           <div className="mt-5 rounded-xl p-5 otp-block relative overflow-hidden">
             <div className="mono text-xs tracking-widest uppercase mb-3"
@@ -735,26 +736,24 @@ function MessageView({ message, onDelete, onClose, theme }: {
                 copy
               </button>
             </div>
-            {/* Scan line effect */}
             <div className="absolute inset-x-0 top-0 h-px"
               style={{ background: "linear-gradient(90deg, transparent, rgba(74,222,128,0.4), transparent)" }} />
           </div>
         )}
       </div>
 
-      {/* Body */}
       <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5">
-        {message.html?.length ? (
+        {message.html ? (
           <iframe
             title="message" sandbox=""
-            srcDoc={`<style>${iframeStyles}</style>${message.html.join("")}`}
+            srcDoc={`<style>${iframeStyles}</style>${message.html}`}
             className="w-full min-h-[400px] border-0"
             style={{ colorScheme: isDark ? "dark" : "light", background: isDark ? "#0d1117" : "#f8fafc" }}
           />
         ) : (
           <pre className="whitespace-pre-wrap text-sm leading-relaxed"
             style={{ color: "var(--color-foreground)", fontFamily: "var(--font-sans)" }}>
-            {message.text}
+            {message.data}
           </pre>
         )}
       </div>
